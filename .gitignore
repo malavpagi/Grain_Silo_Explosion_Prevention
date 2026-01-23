@@ -1,0 +1,22 @@
+# ======================
+# Python basics
+# ======================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+
+# ======================
+# Virtual environments
+# ======================
+.venv/
+venv/
+
+# ======================
+# ML artifacts / data
+# ======================
+*.keras
+*.npy
