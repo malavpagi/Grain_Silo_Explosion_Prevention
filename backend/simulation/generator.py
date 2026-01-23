@@ -12,10 +12,10 @@ class Config:
     DIFFUSION_RATE = 0.05      # Low enough to keep hotspots distinct
     COOLING_RATE   = 0.005     # Very low (Grain is an insulator)
     HEATING_RATE   = 20.0       # Net growth ~3C per hour
-    THERMAL_INERTIA = 0.85
+    THERMAL_INERTIA = 0.80
 
     # --- Event Logic ---
-    SPAWN_CHANCE = 0.0159999
+    SPAWN_CHANCE = 0.02
     MIN_DURATION = 25
     MAX_DURATION = 144
 

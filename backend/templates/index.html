@@ -2,12 +2,16 @@
 <html>
 <head>
   <title>Grain Silo Explosion Risk</title>
+  
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-  <link rel="stylesheet" href="styles.css">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
 
 <body>
-  <h1>🔥 Grain Silo Explosion Risk Monitor</h1>
+  <h1>Grain Silo Explosion Risk Monitor</h1>
 
   <div class="controls">
     <select id="mode">
@@ -25,6 +29,5 @@
     <div id="chartPlot"></div>
   </div>
 
-  <script src="app.js"></script>
 </body>
 </html>

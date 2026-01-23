@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 import numpy as np
 from simulation.generator import generate_test_sequence
@@ -10,10 +10,8 @@ CORS(app)
 
 @app.route("/", methods=["GET"])
 @app.route("/home", methods=["GET"])
-def home():
-    return jsonify({
-        "message": "Grain Silo Explosion Risk API running"
-    })
+def index():
+    return render_template("index.html")
 
 
 @app.route("/predict", methods=["POST"])
