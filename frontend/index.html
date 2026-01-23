@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Grain Silo Explosion Risk</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <h1>🔥 Grain Silo Explosion Risk Monitor</h1>
+
+  <div class="controls">
+    <select id="mode">
+      <option value="synthetic">Use Artificial Data</option>
+      <option value="user">Upload My Data</option>
+    </select>
+
+    <button onclick="runSimulation()">Run Simulation</button>
+  </div>
+
+  <div id="riskBox"></div>
+
+  <div class="grid">
+    <div id="volumePlot"></div>
+    <div id="chartPlot"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
