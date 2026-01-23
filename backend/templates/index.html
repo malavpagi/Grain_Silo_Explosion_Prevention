@@ -24,12 +24,16 @@
             
             <div class="controls-card">
                 <div class="input-group">
-                    <label for="mode">Simulation Mode</label>
+                    <!-- <label for="mode">Simulation Mode</label> -->
                     <select id="mode">
-                        <option value="synthetic">Synthetic Data (AI Generated)</option>
-                        <option value="user">Upload Sensor Data</option>
+                        <option value="synthetic">Synthetic Data</option>
+                        <!-- <option value="user">Upload Sensor Data</option> -->
                     </select>
                 </div>
+                <!-- <div class="input-group hidden" id="uploadGroup">
+                    <label for="fileInput">Sensor Data (50 timesteps)</label>
+                    <input type="file" id="fileInput" accept=".json, .npy">
+\                </div> -->
                 <button onclick="runSimulation()" id="runBtn">
                     <span class="btn-text">INITIALIZE SIMULATION</span>
                 </button>

@@ -1,13 +1,20 @@
+const modeSelect = document.getElementById("mode");
+const mode = modeSelect.value;
+const uploadGroup = document.getElementById("uploadGroup");
+
+mode.addEventListener("change", () => {
+    uploadGroup.classList.toggle("hidden", mode.value !== "user");
+});
 async function runSimulation() {
     // 1. UI: Show Loader & Reset
     const loader = document.getElementById("loader");
     loader.classList.remove("hidden");
     
     try {
-        const mode = document.getElementById("mode").value;
+
         const body = mode === "synthetic"
             ? { mode: "synthetic" }
-            : { mode: "user", sequence: typeof userSequence !== 'undefined' ? userSequence : [] };
+            : { mode: "user", sequence: userSequence };
 
         const res = await fetch("/predict", {
             method: "POST",
@@ -161,7 +168,7 @@ function visualizeLifecycle(frames, max_log, count_log) {
         type: "volume",
         x: X, y: Y, z: Z,
         value: frames[0].flat(2),
-        isomin: 25, isomax: 250,
+        isomin: 25, isomax: 180,
         opacity: 0.15, // Slightly more transparent for style
         surface: { count: 20 },
         colorscale: customColors,
@@ -178,7 +185,7 @@ function visualizeLifecycle(frames, max_log, count_log) {
     for (let t = 0; t < STEPS; t += skip) {
         animationFrames.push({
             name: String(t),
-            data: [{ value: frames[t].flat(2), isomin: 25, isomax: 250 }]
+            data: [{ value: frames[t].flat(2), isomin: 25, isomax: 180 }]
         });
     }
 

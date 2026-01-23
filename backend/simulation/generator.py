@@ -9,15 +9,15 @@ class Config:
 
     # --- Physics Parameters (Your Selection) ---
     AMBIENT = 20.0
-    DIFFUSION_RATE = 0.05      # Low enough to keep hotspots distinct
-    COOLING_RATE   = 0.005     # Very low (Grain is an insulator)
-    HEATING_RATE   = 20.0       # Net growth ~3C per hour
-    THERMAL_INERTIA = 0.80
+    DIFFUSION_RATE = 0.065      # Low enough to keep hotspots distinct
+    COOLING_RATE   = 0.0035     # Very low (Grain is an insulator)
+    HEATING_RATE   = 24.0       # Net growth ~3C per hour
+    THERMAL_INERTIA = 0.88
 
     # --- Event Logic ---
-    SPAWN_CHANCE = 0.02
-    MIN_DURATION = 25
-    MAX_DURATION = 144
+    SPAWN_CHANCE = 0.028
+    MIN_DURATION = 40
+    MAX_DURATION = 200
 
     # --- Data Generation Strategy (Case C Modified) ---
     # SIM_LENGTH = 50           # Full physics lifecycle

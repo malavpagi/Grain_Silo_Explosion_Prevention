@@ -23,7 +23,7 @@ def predict_risk(X_test):
         risk_level = "VERY LOW"
     elif risk_score <= 0.3:
         risk_level = "LOW"
-    elif risk_score <= 0.5:
+    elif risk_score <= 0.6:
         risk_level = "MEDIUM"
     elif risk_score <= 0.8:
         risk_level = "HIGH"

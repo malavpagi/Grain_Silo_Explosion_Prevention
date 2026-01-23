@@ -25,7 +25,8 @@ def predict():
 
     elif mode == "user":
         # user sends already-normalized sequence
-        X_test = np.array(payload["sequence"], dtype=np.float32)
+        files = request.files["file"]
+        X_test = np.array(files, dtype=np.float32)
         viz = None
 
     else:
