@@ -1,28 +1,23 @@
 async function runSimulation() {
-  // 1. Get synthetic data from backend
-  const simRes = await fetch("http://localhost:5000/simulate");
-  const simData = await simRes.json();
 
-  const { frames, max_temp_log, cluster_count_log } = simData;
+  const mode = document.getElementById("mode").value;
 
-  // 2. Animate grid
-  animateVolume(frames);
+  const body =
+    mode === "synthetic"
+      ? { mode: "synthetic" }
+      : { mode: "user", sequence: userSequence };
 
-  // 3. Plot metrics
-  plotMetrics(max_temp_log, cluster_count_log);
-
-  // 4. Predict risk
-  const predRes = await fetch("http://localhost:5000/predict", {
+  const res = await fetch("http://localhost:5000/predict", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      mode: "synthetic",
-      sequence: frames
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
   });
 
-  const pred = await predRes.json();
-  showRisk(pred);
+  const data = await res.json();
+
+  animateVolume(data.frames);
+  plotMetrics(data.max_temp_log, data.cluster_count_log);
+  showRisk(data);
 }
 
 function animateVolume(frames) {
