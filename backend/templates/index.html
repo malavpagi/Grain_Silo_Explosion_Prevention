@@ -1,33 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Grain Silo Explosion Risk</title>
-  
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  
-  <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grain Silo Risk Monitor</title>
+    
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
-
 <body>
-  <h1>Grain Silo Explosion Risk Monitor</h1>
 
-  <div class="controls">
-    <select id="mode">
-      <option value="synthetic">Use Artificial Data</option>
-      <option value="user">Upload My Data</option>
-    </select>
+    <div class="bg-gradient"></div>
 
-    <button onclick="runSimulation()">Run Simulation</button>
-  </div>
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <h1>Grain Silo <span class="highlight">Risk Monitor</span></h1>
+                <p class="subtitle">Thermal Runaway & Explosion Detection System</p>
+            </div>
+            
+            <div class="controls-card">
+                <div class="input-group">
+                    <label for="mode">Simulation Mode</label>
+                    <select id="mode">
+                        <option value="synthetic">Synthetic Data (AI Generated)</option>
+                        <option value="user">Upload Sensor Data</option>
+                    </select>
+                </div>
+                <button onclick="runSimulation()" id="runBtn">
+                    <span class="btn-text">INITIALIZE SIMULATION</span>
+                </button>
+            </div>
+        </header>
 
-  <div id="riskBox"></div>
+        <div id="riskBox" class="risk-hud hidden">
+            <div class="risk-label">CURRENT STATUS</div>
+            <div id="riskContent">--</div>
+        </div>
 
-  <div class="grid">
-    <div id="volumePlot"></div>
-    <div id="chartPlot"></div>
-  </div>
+        <main class="grid">
+            <div class="card">
+                <h3>Volumetric Heat Map (3D)</h3>
+                <div id="volumePlot" class="plot-container"></div>
+            </div>
+            <div class="card">
+                <h3>Telemetry Analysis</h3>
+                <div id="chartPlot" class="plot-container"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="loader" class="loader-overlay hidden">
+        <div class="spinner"></div>
+        <p>Processing Thermal Data...</p>
+    </div>
 
 </body>
 </html>
