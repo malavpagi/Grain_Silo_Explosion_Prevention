@@ -1,17 +1,12 @@
 import numpy as np
 
-# ==========================================
-# 1. CONFIGURATION
-# ==========================================
 class Config:
-    # --- Dimensions ---
     X, Y, Z = 20, 20, 20
 
-    # --- Physics Parameters (Your Selection) ---
     AMBIENT = 20.0
-    DIFFUSION_RATE = 0.065      # Low enough to keep hotspots distinct
-    COOLING_RATE   = 0.0035     # Very low (Grain is an insulator)
-    HEATING_RATE   = 24.0       # Net growth ~3C per hour
+    DIFFUSION_RATE = 0.065
+    COOLING_RATE   = 0.0035
+    HEATING_RATE   = 24.0
     THERMAL_INERTIA = 0.88
 
     # --- Event Logic ---
@@ -19,20 +14,7 @@ class Config:
     MIN_DURATION = 40
     MAX_DURATION = 200
 
-    # --- Data Generation Strategy (Case C Modified) ---
-    # SIM_LENGTH = 50           # Full physics lifecycle
-    INPUT_WINDOW = 50          # Model input size
-    # PREDICT_HORIZON = 24       # Label: "Will it explode in next 24h?"
-
-    # --- Batching ---
-    # SIMS_PER_STEP = 2          # How many physics sims to run in parallel (CPU)
-    # WINDOWS_PER_SIM = 10       # How many random slices to take from each sim
-    # Effective Batch Size = 2 * 10 = 20 samples per training step
-
-    # --- Training Scale ---
-    # TOTAL_SIMULATIONS = 10000   # Total distinct physics worlds to simulate
-    # # Total Samples = 2000 * 10 = 20,000 samples (Good for initial prototype)
-    # EPOCHS = 12 # total sample = 4,00,000samples
+    INPUT_WINDOW = 50
 
 def generate_test_sequence(seed=None, return_viz=True):
     if seed is not None:
@@ -45,7 +27,6 @@ def generate_test_sequence(seed=None, return_viz=True):
 
     history = np.zeros((SIM_LENGTH, Config.X, Config.Y, Config.Z), dtype=np.float32)
 
-    # --- NEW: metrics ---
     max_temp_log = []
     cluster_count_log = []
 
@@ -92,11 +73,10 @@ def generate_test_sequence(seed=None, return_viz=True):
 
         history[t] = grid[0]
 
-        # --- metrics ---
         max_temp_log.append(float(np.max(grid)))
         cluster_count_log.append(sum(t < c['end'] for c in clusters))
 
-    # Normalize for model (UNCHANGED)
+    # Normalize
     norm_history = (history - Config.AMBIENT) / (350.0 - Config.AMBIENT)
     X_test = norm_history[np.newaxis, ..., np.newaxis]
 
@@ -104,7 +84,7 @@ def generate_test_sequence(seed=None, return_viz=True):
         return X_test
 
     return X_test, {
-        "frames": history,  # RAW temperatures (for Plotly)
+        "frames": history,
         "max_temp_log": max_temp_log,
         "cluster_count_log": cluster_count_log
     }

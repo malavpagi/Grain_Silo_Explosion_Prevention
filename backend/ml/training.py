@@ -5,18 +5,14 @@ from tensorflow.keras.models import load_model
 import os
 mixed_precision.set_global_policy('mixed_float16')
 
-# ==========================================
-# 1. CONFIGURATION
-# ==========================================
 class Config:
-    # Dimensions
     X, Y, Z = 20, 20, 20
 
     # Physics Parameters
     AMBIENT = 20.0
-    DIFFUSION_RATE = 0.05      # Low enough to keep hotspots distinct
-    COOLING_RATE   = 0.005     # Very low
-    HEATING_RATE   = 20.0 
+    DIFFUSION_RATE = 0.05
+    COOLING_RATE = 0.005
+    HEATING_RATE = 20.0 
     THERMAL_INERTIA = 0.85
 
     # Event Logic
@@ -30,25 +26,13 @@ class Config:
     PREDICT_HORIZON = 24       # Label
 
     # Batching
-    SIMS_PER_STEP = 2          # How many physics sims to run in parallel (CPU)
-    WINDOWS_PER_SIM = 10       # How many random slices to take from each sim
-    # Effective Batch Size = 2 * 10 = 20 samples per training step
+    SIMS_PER_STEP = 2
+    WINDOWS_PER_SIM = 10
 
-    # --- Training Scale ---
     TOTAL_SIMULATIONS = 10000   # Total distinct physics worlds to simulate
-    # Total Samples = 2000 * 10 = 20,000 samples (Good for initial prototype)
-    EPOCHS = 12 # total sample = 4,00,000samples
+    EPOCHS = 12
 
-# ==========================================
-# 2. THE DATA GENERATOR
-# ==========================================
 def generate_data():
-    """
-    Generator that yields batches of (X, y)
-    - Normalized inputs (0.0 to 1.0)
-    - Fixed Batch Size (Crucial for stable training)
-    """
-    # Target batch size based on your config
     TARGET_BATCH_SIZE = Config.SIMS_PER_STEP * Config.WINDOWS_PER_SIM
 
     while True:
@@ -58,11 +42,9 @@ def generate_data():
         # Keep running sims until we have enough valid samples for a full batch
         while len(X_batch) < TARGET_BATCH_SIZE:
 
-            # --- A. Run Parallel Physics (Same as before) ---
             grid = np.ones((Config.SIMS_PER_STEP, Config.X, Config.Y, Config.Z)) * Config.AMBIENT
             batch_clusters = [[] for _ in range(Config.SIMS_PER_STEP)]
 
-            # Buffer: (200, 2, 20, 20, 20)
             history_buffer = np.zeros(
                 (Config.SIM_LENGTH, Config.SIMS_PER_STEP, Config.X, Config.Y, Config.Z),
                 dtype=np.float32
@@ -104,7 +86,6 @@ def generate_data():
                 grid = (Config.THERMAL_INERTIA * prev_grid + (1.0 - Config.THERMAL_INERTIA) * grid).astype(np.float32)
                 history_buffer[t] = grid.copy()
 
-            # --- B. Slice Random Windows (With Normalization) ---
             max_start = Config.SIM_LENGTH - Config.INPUT_WINDOW - Config.PREDICT_HORIZON
 
             for i in range(Config.SIMS_PER_STEP):
@@ -115,12 +96,7 @@ def generate_data():
 
                     # 1. Grab Window
                     window = history_buffer[t_start:t_end, i, :, :, :]
-
                     window += np.random.normal(loc=0.0, scale=0.5, size=window.shape)
-
-                    # *** CRITICAL FIX: NORMALIZATION ***
-                    # Scale from approx 20-350 down to 0-1
-                    # (Input - Min) / (Max - Min)
                     window = (window - Config.AMBIENT) / (350.0 - Config.AMBIENT)
 
                     # 2. Determine Label
@@ -134,27 +110,20 @@ def generate_data():
                     elif max_future_temp <= 200.0: is_explosion = 0.8
                     else: is_explosion = 1.0
 
-                    # 3. Filter (Bias training)
                     if max_future_temp > 100 or np.random.rand() < 0.5:
                         X_batch.append(window)
                         y_batch.append(is_explosion)
 
-        # --- C. Yield Fixed Batch Size ---
-        # Trim to target size to avoid shape errors
         X_out = np.array(X_batch[:TARGET_BATCH_SIZE])[..., np.newaxis]
         y_out = np.array(y_batch[:TARGET_BATCH_SIZE])
 
         yield X_out, y_out
 
-# ==========================================
-# 3. THE MODEL (3D CNN + LSTM)
-# ==========================================
 def build_3d_model():
     input_shape = (Config.INPUT_WINDOW, Config.X, Config.Y, Config.Z, 1)
 
     model = models.Sequential(name="test_model")
 
-    # --- 1. SPATIAL FEATURE EXTRACTION (TimeDistributed 3D CNN) ---
     # Processes each frame independently but shares weights across time
 
     model.add(layers.TimeDistributed(
@@ -170,11 +139,9 @@ def build_3d_model():
 
     model.add(layers.TimeDistributed(layers.Flatten()))
 
-    # --- 2. TEMPORAL DYNAMICS (LSTM) ---
     # Learns the "Velocity" of the heat change
     model.add(layers.LSTM(96, return_sequences=False, dropout=0.25))
 
-    # --- 3. DECISION HEAD ---
     model.add(layers.Dense(32, activation='relu'))
     model.add(layers.Dense(1, activation='sigmoid'))
 
@@ -187,17 +154,14 @@ def build_3d_model():
 
     return model
 
-# ==========================================
-# 4. MAIN EXECUTION ROUTINE
-# ==========================================
 
 print("--- SYSTEM CHECK ---")
 # Check GPU
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
-    print(f"✅ GPU Detected: {gpus[0]}")
+    print(f"GPU Detected: {gpus[0]}")
 else:
-    print("⚠️  NO GPU DETECTED. Training will be extremely slow.")
+    print("NO GPU DETECTED. Training will be extremely slow.")
     print("Action: Go to Runtime -> Change runtime type -> T4 GPU")
 
 # Instantiate
@@ -220,16 +184,13 @@ print(f"Steps per Epoch:       {steps_per_epoch}")
 # Create Generator
 train_gen = generate_data()
 
-# Optional: Mount Drive to save model
-# from google.colab import drive
-# drive.mount('/content/drive')
 model.optimizer.learning_rate.assign(0.0002)
 print("\n--- STARTING TRAINING ---")
 lr_schedule = tf.keras.callbacks.ReduceLROnPlateau(
     monitor='loss',
-    factor=0.5,      # Halving is good
-    patience=4,      # Wait 4 epochs to confirm it's actually stuck, not just noise
-    min_lr=1e-6,     # Allow it to go much lower for fine-tuning physics
+    factor=0.5,
+    patience=4,      # Wait 4 epochs to confirm
+    min_lr=1e-6,     # for fine-tuning physics
     verbose=1
 )
 
