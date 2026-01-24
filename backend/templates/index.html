@@ -3,64 +3,759 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grain Silo Risk Monitor</title>
+    <title>SiloGuard AI - Grain Silo Explosion Prevention</title>
     
+    <!-- Plotly for visualizations -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
 <body>
+    <div id="root"></div>
+    
+    <!-- Lucide Icons as SVG sprites -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    
+    <script>
+        // Icon helper
+        const Icon = {
+            Shield: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>',
+            Activity: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>',
+            Bell: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>',
+            Settings: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+            Upload: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>',
+            Download: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>',
+            Zap: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+            AlertTriangle: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+            Thermometer: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"></path></svg>',
+            Clock: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+            Database: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>',
+            TrendingUp: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>',
+            CheckCircle2: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>',
+            XCircle: () => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>'
+        };
 
-    <div class="bg-gradient"></div>
+        // Main App State
+        let state = {
+            mode: 'synthetic',
+            isLoading: false,
+            uploadedFile: null,
+            riskData: null,
+            simulationData: null,
+            activeTab: 'monitor',
+            alerts: [],
+            predictionHistory: [],
+            alertThresholds: {
+                email: 0.5,
+                sms: 0.7,
+                critical: 0.8
+            }
+        };
 
-    <div class="container">
-        <header>
-            <div class="logo-area">
-                <h1>Grain Silo <span class="highlight">Risk Monitor</span></h1>
-                <p class="subtitle">Thermal Runaway & Explosion Detection System</p>
-            </div>
-            
-            <div class="controls-card">
-                <div class="input-group">
-                    <!-- <label for="mode">Simulation Mode</label> -->
-                    <select id="mode">
-                        <option value="synthetic">Synthetic Data</option>
-                        <!-- <option value="user">Upload Sensor Data</option> -->
-                    </select>
+        // Risk configurations
+        const getRiskConfig = (level) => {
+            const configs = {
+                'SAFE': { color: '#10b981', gradient: 'from-emerald-500/20 to-green-600/20', textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/10', borderColor: 'border-emerald-500/30' },
+                'VERY LOW': { color: '#3b82f6', gradient: 'from-blue-500/20 to-cyan-600/20', textColor: 'text-blue-400', bgColor: 'bg-blue-500/10', borderColor: 'border-blue-500/30' },
+                'LOW': { color: '#06b6d4', gradient: 'from-cyan-500/20 to-teal-600/20', textColor: 'text-cyan-400', bgColor: 'bg-cyan-500/10', borderColor: 'border-cyan-500/30' },
+                'MEDIUM': { color: '#f59e0b', gradient: 'from-amber-500/20 to-orange-600/20', textColor: 'text-amber-400', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30' },
+                'HIGH': { color: '#ef4444', gradient: 'from-red-500/20 to-rose-600/20', textColor: 'text-red-400', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/30' },
+                'VERY HIGH': { color: '#dc2626', gradient: 'from-rose-600/30 to-red-700/30', textColor: 'text-rose-400', bgColor: 'bg-rose-500/20', borderColor: 'border-rose-500/50' }
+            };
+            return configs[level] || configs['MEDIUM'];
+        };
+
+        // Add alert
+        const addAlert = (message, severity, action = null) => {
+            const newAlert = {
+                id: Date.now(),
+                message,
+                severity,
+                timestamp: new Date(),
+                action,
+                read: false
+            };
+            state.alerts = [newAlert, ...state.alerts];
+            render();
+        };
+
+        // Generate recommendations
+        const generateRecommendations = (score) => {
+            if (score < 0.3) return ['System operating normally', 'Continue standard monitoring'];
+            if (score < 0.6) return ['Increase monitoring frequency', 'Check ventilation systems', 'Inspect for hotspots'];
+            if (score < 0.8) return ['ACTIVATE COOLING SYSTEMS', 'Increase aeration', 'Prepare for emergency response'];
+            return ['IMMEDIATE EVACUATION', 'Emergency cooling protocol', 'Contact fire department', 'Begin grain removal'];
+        };
+
+        // File upload handler
+        const handleFileUpload = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                state.uploadedFile = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        console.log('File uploaded successfully', data);
+                        render();
+                    } catch (error) {
+                        alert('Invalid file format. Please upload a valid JSON file.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+
+        // Run simulation
+        const runSimulation = async () => {
+            state.isLoading = true;
+            render();
+
+            try {
+                let body;
+
+                if (state.mode === 'synthetic') {
+                    body = { mode: 'synthetic' };
+                } else if (state.uploadedFile) {
+                    const reader = new FileReader();
+                    const fileData = await new Promise((resolve, reject) => {
+                        reader.onload = (e) => resolve(JSON.parse(e.target.result));
+                        reader.onerror = reject;
+                        reader.readAsText(state.uploadedFile);
+                    });
+                    body = { mode: 'user', sequence: fileData.sequence || fileData };
+                } else {
+                    alert('Please upload a file first');
+                    state.isLoading = false;
+                    render();
+                    return;
+                }
+
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) throw new Error('Simulation failed');
+
+                const data = await response.json();
+
+                state.simulationData = data;
+                state.riskData = {
+                    score: data.risk_score,
+                    level: data.risk_level
+                };
+
+                // Add to history
+                state.predictionHistory = [{
+                    timestamp: new Date().toISOString(),
+                    score: data.risk_score,
+                    level: data.risk_level,
+                    maxTemp: Math.max(...data.max_temp_log),
+                    clusters: Math.max(...data.cluster_count_log)
+                }, ...state.predictionHistory.slice(0, 19)];
+
+                // Trigger alerts
+                if (data.risk_score >= state.alertThresholds.email) {
+                    addAlert(`High risk detected: ${data.risk_level} (Score: ${data.risk_score.toFixed(3)})`, 'high', 'email_sent');
+                }
+                if (data.risk_score >= state.alertThresholds.sms) {
+                    addAlert(`CRITICAL: Immediate action required! Risk: ${data.risk_level}`, 'critical', 'sms_sent');
+                }
+                if (data.risk_score >= state.alertThresholds.critical) {
+                    addAlert(`EMERGENCY ALERT: Explosion risk imminent! Evacuate and activate emergency protocols!`, 'critical', 'emergency_protocol');
+                }
+
+                setTimeout(() => visualizeData(data), 100);
+
+            } catch (error) {
+                alert('Error: ' + error.message);
+                addAlert(`Simulation error: ${error.message}`, 'error');
+            } finally {
+                state.isLoading = false;
+                render();
+            }
+        };
+
+        // Visualize data
+        const visualizeData = (data) => {
+            if (!data || !data.frames) return;
+
+            const { frames, max_temp_log, cluster_count_log } = data;
+            const SIZE = frames[0].length;
+
+            const darkLayout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(15,23,42,0.8)',
+                font: { color: '#94a3b8', family: 'Inter, sans-serif' },
+            };
+
+            // 2D Chart
+            const chartPlot = document.getElementById('chartPlot');
+            if (chartPlot) {
+                const timeSteps = [...Array(max_temp_log.length).keys()];
+
+                const tempTrace = {
+                    x: timeSteps,
+                    y: max_temp_log,
+                    name: 'Max Temperature',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#ef4444', width: 3 },
+                    fill: 'tozeroy',
+                    fillcolor: 'rgba(239, 68, 68, 0.2)'
+                };
+
+                const thresholdLine = {
+                    x: [0, timeSteps.length - 1],
+                    y: [100, 100],
+                    name: 'Danger Zone',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#f59e0b', dash: 'dash', width: 2 },
+                    hoverinfo: 'skip'
+                };
+
+                const clusterTrace = {
+                    x: timeSteps,
+                    y: cluster_count_log,
+                    name: 'Heat Clusters',
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: { color: '#3b82f6', width: 2 },
+                    marker: { size: 4 },
+                    yaxis: 'y2'
+                };
+
+                const layout = {
+                    ...darkLayout,
+                    margin: { t: 10, l: 60, r: 60, b: 50 },
+                    showlegend: true,
+                    legend: {
+                        orientation: 'h',
+                        y: -0.15,
+                        bgcolor: 'rgba(30, 41, 59, 0.8)',
+                        bordercolor: '#475569',
+                        borderwidth: 1
+                    },
+                    xaxis: {
+                        title: 'Time Steps',
+                        gridcolor: '#1e293b',
+                        color: '#94a3b8'
+                    },
+                    yaxis: {
+                        title: 'Temperature (°C)',
+                        gridcolor: '#1e293b',
+                        color: '#94a3b8'
+                    },
+                    yaxis2: {
+                        title: 'Cluster Count',
+                        overlaying: 'y',
+                        side: 'right',
+                        showgrid: false,
+                        color: '#3b82f6'
+                    }
+                };
+
+                Plotly.newPlot(chartPlot, [tempTrace, thresholdLine, clusterTrace], layout, { responsive: true });
+            }
+
+            // 3D Volume
+            const volumePlot = document.getElementById('volumePlot');
+            if (volumePlot) {
+                const X = [], Y = [], Z = [];
+                for (let x = 0; x < SIZE; x++) {
+                    for (let y = 0; y < SIZE; y++) {
+                        for (let z = 0; z < SIZE; z++) {
+                            X.push(x); Y.push(y); Z.push(z);
+                        }
+                    }
+                }
+
+                const heatColors = [
+                    [0.0, '#1e3a8a'],
+                    [0.2, '#3b82f6'],
+                    [0.4, '#10b981'],
+                    [0.6, '#f59e0b'],
+                    [0.8, '#ef4444'],
+                    [1.0, '#dc2626']
+                ];
+
+                const volumeData = {
+                    type: 'volume',
+                    x: X, y: Y, z: Z,
+                    value: frames[0].flat(2),
+                    isomin: 20,
+                    isomax: 200,
+                    opacity: 0.2,
+                    surface: { count: 25 },
+                    colorscale: heatColors,
+                    colorbar: {
+                        title: '°C',
+                        thickness: 15,
+                        len: 0.7,
+                        tickfont: { color: '#94a3b8' }
+                    }
+                };
+
+                const animFrames = frames.map((frame, t) => ({
+                    name: String(t),
+                    data: [{ value: frame.flat(2) }]
+                }));
+
+                const layout3D = {
+                    ...darkLayout,
+                    margin: { t: 0, l: 0, r: 0, b: 0 },
+                    scene: {
+                        aspectmode: 'cube',
+                        bgcolor: 'rgba(15, 23, 42, 0.5)',
+                        xaxis: {
+                            title: 'X',
+                            color: '#64748b',
+                            gridcolor: '#1e293b',
+                            showbackground: true,
+                            backgroundcolor: 'rgba(30, 41, 59, 0.3)'
+                        },
+                        yaxis: {
+                            title: 'Y',
+                            color: '#64748b',
+                            gridcolor: '#1e293b',
+                            showbackground: true,
+                            backgroundcolor: 'rgba(30, 41, 59, 0.3)'
+                        },
+                        zaxis: {
+                            title: 'Z',
+                            color: '#64748b',
+                            gridcolor: '#1e293b',
+                            showbackground: true,
+                            backgroundcolor: 'rgba(30, 41, 59, 0.3)'
+                        },
+                        camera: { eye: { x: 1.8, y: 1.8, z: 1.5 } }
+                    },
+                    updatemenus: [{
+                        type: 'buttons',
+                        showactive: false,
+                        y: 0.95,
+                        x: 0.05,
+                        bgcolor: 'rgba(59, 130, 246, 0.9)',
+                        bordercolor: '#3b82f6',
+                        font: { color: '#ffffff' },
+                        buttons: [{
+                            label: '▶ Animate',
+                            method: 'animate',
+                            args: [null, {
+                                frame: { duration: 80, redraw: true },
+                                fromcurrent: true,
+                                transition: { duration: 0 }
+                            }]
+                        }]
+                    }],
+                    sliders: [{
+                        pad: { t: 20 },
+                        currentvalue: {
+                            prefix: 'Timestep: ',
+                            font: { color: '#f8fafc', size: 14 }
+                        },
+                        len: 0.85,
+                        x: 0.08,
+                        steps: animFrames.map(f => ({
+                            label: f.name,
+                            method: 'animate',
+                            args: [[f.name], { mode: 'immediate', frame: { duration: 0, redraw: true } }]
+                        }))
+                    }]
+                };
+
+                Plotly.newPlot(volumePlot, [volumeData], layout3D, { responsive: true })
+                    .then(() => Plotly.addFrames(volumePlot, animFrames));
+            }
+        };
+
+        // Export report
+        const exportReport = () => {
+            if (!state.riskData || !state.simulationData) return;
+
+            const report = {
+                timestamp: new Date().toISOString(),
+                risk_assessment: {
+                    score: state.riskData.score,
+                    level: state.riskData.level
+                },
+                metrics: {
+                    max_temperature: Math.max(...state.simulationData.max_temp_log),
+                    max_clusters: Math.max(...state.simulationData.cluster_count_log),
+                    timesteps: state.simulationData.frames.length
+                },
+                alerts: {
+                    total: state.alerts.length,
+                    unread: state.alerts.filter(a => !a.read).length,
+                    recent_alerts: state.alerts.slice(0, 10)
+                },
+                recommendations: generateRecommendations(state.riskData.score)
+            };
+
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `silo-report-${Date.now()}.json`;
+            a.click();
+        };
+
+        // Render function
+        const render = () => {
+            const root = document.getElementById('root');
+            const riskConfig = state.riskData ? getRiskConfig(state.riskData.level) : null;
+
+            root.innerHTML = `
+                <div class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+                    <!-- Animated Background -->
+                    <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
+                        <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
+                        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style="animation-delay: 700ms;"></div>
+                    </div>
+
+                    <!-- Header -->
+                    <header class="relative border-b border-slate-800 bg-slate-900/50 backdrop-blur-xl">
+                        <div class="max-w-7xl mx-auto px-6 py-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                        <div class="w-7 h-7 text-white">${Icon.Shield()}</div>
+                                    </div>
+                                    <div>
+                                        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                            SiloGuard AI
+                                        </h1>
+                                        <p class="text-sm text-slate-400">Predictive Explosion Prevention System</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-3">
+                                    <button onclick="state.activeTab = 'monitor'; render();" class="px-4 py-2 rounded-lg font-medium transition-all ${state.activeTab === 'monitor' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}">
+                                        <span class="inline-block w-4 h-4 mr-2 align-text-bottom">${Icon.Activity()}</span>
+                                        Monitor
+                                    </button>
+                                    <button onclick="state.activeTab = 'alerts'; render();" class="px-4 py-2 rounded-lg font-medium transition-all relative ${state.activeTab === 'alerts' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}">
+                                        <span class="inline-block w-4 h-4 mr-2 align-text-bottom">${Icon.Bell()}</span>
+                                        Alerts
+                                        ${state.alerts.filter(a => !a.read).length > 0 ? `<span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center">${state.alerts.filter(a => !a.read).length}</span>` : ''}
+                                    </button>
+                                    <button onclick="state.activeTab = 'settings'; render();" class="px-4 py-2 rounded-lg font-medium transition-all ${state.activeTab === 'settings' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'}">
+                                        <span class="inline-block w-4 h-4 mr-2 align-text-bottom">${Icon.Settings()}</span>
+                                        Settings
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- Main Content -->
+                    <main class="relative max-w-7xl mx-auto px-6 py-8">
+                        ${state.activeTab === 'monitor' ? renderMonitorTab(riskConfig) : ''}
+                        ${state.activeTab === 'alerts' ? renderAlertsTab() : ''} 
+                        ${state.activeTab === 'settings' ? renderSettingsTab() : ''} 
+                    </main> 
+                </div> `;
+
+        // Re-initialize icons
+        lucide.createIcons();
+        
+        // Re-bind specific events if necessary, though inline onClicks handle most
+    };
+
+    // --- Tab Renderers ---
+
+    const renderMonitorTab = (riskConfig) => {
+        const isSimulated = !!state.riskData;
+        
+        return `
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-12">
+                    <div class="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
+                        <div class="flex flex-wrap items-center justify-between gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="bg-slate-700/50 rounded-lg p-1 flex">
+                                    <button onclick="state.mode = 'synthetic'; render()" class="px-4 py-2 rounded-md text-sm font-medium transition-all ${state.mode === 'synthetic' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}">
+                                        Synthetic Data
+                                    </button>
+                                    <button onclick="state.mode = 'user'; render()" class="px-4 py-2 rounded-md text-sm font-medium transition-all ${state.mode === 'user' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}">
+                                        Upload File
+                                    </button>
+                                </div>
+                                
+                                ${state.mode === 'user' ? `
+                                    <div class="relative">
+                                        <input type="file" id="fileInput" onchange="handleFileUpload(event)" class="hidden" accept=".json">
+                                        <label for="fileInput" class="cursor-pointer flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors border border-slate-600">
+                                            <span class="w-4 h-4">${Icon.Upload()}</span>
+                                            ${state.uploadedFile ? state.uploadedFile.name : 'Choose JSON File'}
+                                        </label>
+                                    </div>
+                                ` : ''}
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <button onclick="exportReport()" class="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors ${!isSimulated ? 'opacity-50 cursor-not-allowed' : ''}" ${!isSimulated ? 'disabled' : ''}>
+                                    <span class="w-4 h-4">${Icon.Download()}</span>
+                                    Export Report
+                                </button>
+                                <button onclick="runSimulation()" class="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg font-medium shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed" ${state.isLoading ? 'disabled' : ''}>
+                                    ${state.isLoading ? '<div class="loading-spinner"></div> Processing...' : `<span class="w-4 h-4">${Icon.Zap()}</span> Run Simulation`}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <!-- <div class="input-group hidden" id="uploadGroup">
-                    <label for="fileInput">Sensor Data (50 timesteps)</label>
-                    <input type="file" id="fileInput" accept=".json, .npy">
-\                </div> -->
-                <button onclick="runSimulation()" id="runBtn">
-                    <span class="btn-text">INITIALIZE SIMULATION</span>
-                </button>
+
+                ${isSimulated ? `
+                    <div class="lg:col-span-4">
+                        <div class="h-full bg-slate-800/50 backdrop-blur-sm border ${riskConfig.borderColor} rounded-xl p-6 relative overflow-hidden group">
+                            <div class="absolute inset-0 bg-gradient-to-br ${riskConfig.gradient} opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                            
+                            <div class="relative z-10">
+                                <h3 class="text-slate-400 font-medium flex items-center gap-2 mb-4">
+                                    <span class="w-5 h-5">${Icon.AlertTriangle()}</span>
+                                    Risk Assessment
+                                </h3>
+                                
+                                <div class="flex flex-col items-center justify-center py-8">
+                                    <div class="relative w-48 h-48 flex items-center justify-center">
+                                        <div class="absolute inset-0 rounded-full border-4 ${riskConfig.borderColor} animate-ping opacity-20"></div>
+                                        <div class="absolute inset-0 rounded-full border-4 ${riskConfig.borderColor} opacity-50"></div>
+                                        
+                                        <div class="text-center">
+                                            <div class="text-5xl font-bold ${riskConfig.textColor} mb-1">
+                                                ${(state.riskData.score * 100).toFixed(1)}%
+                                            </div>
+                                            <div class="text-sm text-slate-400 font-medium tracking-wider uppercase">Probability</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-6 px-4 py-2 rounded-full ${riskConfig.bgColor} border ${riskConfig.borderColor} ${riskConfig.textColor} font-bold tracking-wide">
+                                        ${state.riskData.level}
+                                    </div>
+                                </div>
+
+                                <div class="space-y-3 mt-6">
+                                    ${generateRecommendations(state.riskData.score).map(rec => `
+                                        <div class="flex items-start gap-3 text-sm text-slate-300 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                                            <span class="text-blue-400 mt-0.5">${Icon.CheckCircle2()}</span>
+                                            ${rec}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-8 space-y-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="stat-card bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                                <div class="flex items-center gap-3 text-slate-400 mb-2">
+                                    <span class="w-4 h-4">${Icon.Thermometer()}</span>
+                                    Max Temperature
+                                </div>
+                                <div class="text-2xl font-bold text-slate-100">
+                                    ${Math.max(...state.simulationData.max_temp_log).toFixed(1)}°C
+                                </div>
+                                <div class="text-xs text-slate-500 mt-1">Threshold: 100°C</div>
+                            </div>
+                            <div class="stat-card bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                                <div class="flex items-center gap-3 text-slate-400 mb-2">
+                                    <span class="w-4 h-4">${Icon.Database()}</span>
+                                    Peak Clusters
+                                </div>
+                                <div class="text-2xl font-bold text-slate-100">
+                                    ${Math.max(...state.simulationData.cluster_count_log)}
+                                </div>
+                                <div class="text-xs text-slate-500 mt-1">Active heat pockets</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 h-[400px]">
+                            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex flex-col">
+                                <h4 class="text-sm font-medium text-slate-400 mb-4">3D Thermal Analysis</h4>
+                                <div id="volumePlot" class="flex-1 w-full h-full min-h-[300px]"></div>
+                            </div>
+                            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex flex-col">
+                                <h4 class="text-sm font-medium text-slate-400 mb-4">Temporal Evolution</h4>
+                                <div id="chartPlot" class="flex-1 w-full h-full min-h-[300px]"></div>
+                            </div>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="lg:col-span-12 py-20">
+                        <div class="flex flex-col items-center justify-center text-center">
+                            <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                                <span class="w-10 h-10 text-slate-500">${Icon.Activity()}</span>
+                            </div>
+                            <h2 class="text-2xl font-bold text-slate-200 mb-2">Ready to Simulate</h2>
+                            <p class="text-slate-400 max-w-md mx-auto mb-8">
+                                Select a data source mode above and click "Run Simulation" to analyze explosion risks in the grain silo using our 3D CNN model.
+                            </p>
+                        </div>
+                    </div>
+                `}
             </div>
-        </header>
+        `;
+    };
 
-        <div id="riskBox" class="risk-hud hidden">
-            <div class="risk-label">CURRENT STATUS</div>
-            <div id="riskContent">--</div>
-        </div>
-
-        <main class="grid">
-            <div class="card">
-                <h3>Volumetric Heat Map (3D)</h3>
-                <div id="volumePlot" class="plot-container"></div>
+    const renderAlertsTab = () => {
+        return `
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
+                    <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-slate-100">System Alerts</h2>
+                        <span class="px-3 py-1 bg-slate-700 rounded-full text-xs text-slate-300">
+                            Total: ${state.alerts.length}
+                        </span>
+                    </div>
+                    <div class="divide-y divide-slate-700/50">
+                        ${state.alerts.length === 0 ? `
+                            <div class="p-12 text-center text-slate-500">
+                                <span class="inline-block w-12 h-12 mb-4 opacity-50">${Icon.CheckCircle2()}</span>
+                                <p>No active alerts. System is running normally.</p>
+                            </div>
+                        ` : state.alerts.map(alert => `
+                            <div class="p-4 hover:bg-slate-700/30 transition-colors flex gap-4 items-start ${alert.severity === 'critical' ? 'bg-red-500/5' : ''}">
+                                <div class="mt-1">
+                                    ${alert.severity === 'critical' 
+                                        ? `<span class="text-red-500 w-6 h-6 inline-block">${Icon.AlertTriangle()}</span>`
+                                        : alert.severity === 'high'
+                                            ? `<span class="text-orange-500 w-6 h-6 inline-block">${Icon.AlertTriangle()}</span>`
+                                            : `<span class="text-blue-500 w-6 h-6 inline-block">${Icon.Bell()}</span>`
+                                    }
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <h4 class="font-medium ${alert.severity === 'critical' ? 'text-red-400' : 'text-slate-200'}">
+                                            ${alert.severity.toUpperCase()} ALERT
+                                        </h4>
+                                        <span class="text-xs text-slate-500 flex items-center gap-1">
+                                            ${Icon.Clock()} ${new Date(alert.timestamp).toLocaleTimeString()}
+                                        </span>
+                                    </div>
+                                    <p class="text-slate-400 text-sm mb-2">${alert.message}</p>
+                                    ${alert.action ? `
+                                        <div class="inline-flex items-center gap-1 px-2 py-1 bg-slate-800 rounded text-xs text-slate-400 border border-slate-700">
+                                            <span class="w-3 h-3">${Icon.Zap()}</span> Action Taken: ${alert.action}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
             </div>
-            <div class="card">
-                <h3>Telemetry Analysis</h3>
-                <div id="chartPlot" class="plot-container"></div>
+        `;
+    };
+
+    const renderSettingsTab = () => {
+        return `
+            <div class="max-w-2xl mx-auto">
+                <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+                    <h2 class="text-xl font-bold text-slate-100 mb-6 flex items-center gap-2">
+                        <span class="w-6 h-6">${Icon.Settings()}</span>
+                        Threshold Configuration
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">
+                                Email Alert Threshold (Risk Score 0-1)
+                            </label>
+                            <input type="range" min="0" max="1" step="0.05" 
+                                value="${state.alertThresholds.email}"
+                                oninput="state.alertThresholds.email = parseFloat(this.value); this.nextElementSibling.innerText = this.value"
+                                class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                            <span class="block text-right text-blue-400 font-mono mt-1">${state.alertThresholds.email}</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">
+                                SMS Alert Threshold (Risk Score 0-1)
+                            </label>
+                            <input type="range" min="0" max="1" step="0.05" 
+                                value="${state.alertThresholds.sms}"
+                                oninput="state.alertThresholds.sms = parseFloat(this.value); this.nextElementSibling.innerText = this.value"
+                                class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500">
+                            <span class="block text-right text-orange-400 font-mono mt-1">${state.alertThresholds.sms}</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">
+                                Critical Emergency Threshold (Risk Score 0-1)
+                            </label>
+                            <input type="range" min="0" max="1" step="0.05" 
+                                value="${state.alertThresholds.critical}"
+                                oninput="state.alertThresholds.critical = parseFloat(this.value); this.nextElementSibling.innerText = this.value"
+                                class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-red-500">
+                            <span class="block text-right text-red-400 font-mono mt-1">${state.alertThresholds.critical}</span>
+                        </div>
+
+                        <div class="pt-6 border-t border-slate-700">
+                            <button onclick="render()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
+                                Save Configurations
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </main>
-    </div>
+        `;
+    };
 
-    <div id="loader" class="loader-overlay hidden">
-        <div class="spinner"></div>
-        <p>Processing Thermal Data...</p>
-    </div>
+    // Initial render
+    render();
 
-</body>
-</html>
+</script>
+</body> </html>
