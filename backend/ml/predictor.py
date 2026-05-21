@@ -1,8 +1,31 @@
 import keras
 import tensorflow as tf
 import numpy as np
+import requests
+import os
 
-MODEL_PATH = "C:/Users/malav/My_Storage/Projects/Grain_Silo_Explosion_Prevention/backend/model/silo_model_v4_4.keras"
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_DIR = os.path.join(BASE_DIR, "model")
+MODEL_PATH = os.path.join(MODEL_DIR, "silo_model_v4_4.keras")
+
+MODEL_URL = os.environ.get("MODEL_URL")
+
+os.makedirs(MODEL_DIR, exist_ok=True)
+
+if not os.path.exists(MODEL_PATH):
+    print("Downloading model...")
+    response = requests.get(MODEL_URL)
+    if response.status_code == 200:
+        with open(MODEL_PATH, "wb") as f:
+            f.write(response.content)
+        print("Model downloaded successfully.")
+    else:
+        raise Exception(
+            f"Failed to download model: {response.status_code}"
+        )
+
 keras.config.set_floatx('float32')
 keras.mixed_precision.set_global_policy('float32')
 model = tf.keras.models.load_model(MODEL_PATH, compile=False)
